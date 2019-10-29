@@ -16,7 +16,9 @@ public:
 
     template<typename T> void setValue(const std::string &key, const T &value);
     void setValue(const std::string &key, const std::string &value);
+    void setValue(const std::string &key, const char *value);
 
+    template<typename T> bool getValue(const std::string &key, T &value);
     bool getValue(const std::string &key, std::string &value);
 
     bool load(const std::string &file_name);
@@ -44,6 +46,27 @@ void SettingsText::setValue(const std::string &key, const T &value)
 void SettingsText::setValue(const std::string &key, const std::string &value)
 {
     settings[key] = value;
+}
+
+void SettingsText::setValue(const std::string &key, const char *value)
+{
+    settings[key] = value;
+}
+
+template<typename T>
+bool SettingsText::getValue(const std::string &key, T &value)
+{
+    if (settings.find(key) == settings.end()) {
+        return false;
+    }
+
+    std::stringstream sstream(settings[key]);
+    set(sstream);
+    if (sstream >> value) {
+        return true;
+    }
+
+    return false;
 }
 
 bool SettingsText::getValue(const std::string &key, std::string &value)
