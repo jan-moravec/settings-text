@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <unordered_map>
+#include <functional>
 
 #include <iostream>
 
@@ -14,12 +15,14 @@ class SettingsText
 public:
     SettingsText();
 
-    template<typename T> void setValue(const std::string &key, const T &value);
-    void setValue(const std::string &key, const std::string &value);
-    void setValue(const std::string &key, const char *value);
+    template<typename T> bool setValue(const std::string &key, const T &value);
+    bool setValue(const std::string &key, const std::string &value);
+    bool setValue(const std::string &key, const char *value);
+    template<typename T> bool setValue(const std::string &key, const T &value, std::function<bool(const T &value, std::string &result)> convert);
 
     template<typename T> bool getValue(const std::string &key, T &value);
     bool getValue(const std::string &key, std::string &value);
+    template<typename T> bool getValue(const std::string &key, T &value, std::function<bool(const std::string &text, T &value)> convert);
 
     bool load(const std::string &file_name);
     bool save(const std::string &file_name);
@@ -35,22 +38,40 @@ SettingsText::SettingsText()
 }
 
 template<typename T>
-void SettingsText::setValue(const std::string &key, const T &value)
+bool SettingsText::setValue(const std::string &key, const T &value)
 {
     std::stringstream sstream;
     set(sstream);
-    sstream << value;
-    settings[key] = sstream.str();
+    if (sstream << value) {
+        settings[key] = sstream.str();
+        return true;
+    }
+
+    return false;
 }
 
-void SettingsText::setValue(const std::string &key, const std::string &value)
+bool SettingsText::setValue(const std::string &key, const std::string &value)
 {
     settings[key] = value;
+    return true;
 }
 
-void SettingsText::setValue(const std::string &key, const char *value)
+bool SettingsText::setValue(const std::string &key, const char *value)
 {
     settings[key] = value;
+    return true;
+}
+
+template<typename T>
+bool SettingsText::setValue(const std::string &key, const T &value, std::function<bool(const T &value, std::string &result)> convert)
+{
+    std::string result;
+    if (convert(value, result)) {
+        settings[key] = result;
+        return true;
+    }
+
+    return false;
 }
 
 template<typename T>
@@ -78,6 +99,20 @@ bool SettingsText::getValue(const std::string &key, std::string &value)
     value = settings[key];
 
     return true;
+}
+
+template<typename T>
+bool SettingsText::getValue(const std::string &key, T &value, std::function<bool(const std::string &text, T &value)> convert)
+{
+    if (settings.find(key) == settings.end()) {
+        return false;
+    }
+
+    if (convert(settings[key], value)) {
+        return true;
+    }
+
+    return false;
 }
 
 bool SettingsText::load(const std::string &file_name)

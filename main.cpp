@@ -3,18 +3,18 @@
 
 enum class Test { aaa, bbb, ccc };
 
-std::ostream& operator<<(std::ostream& str, Test value)
+std::ostream& operator<<(std::ostream& stream, Test value)
 {
     switch (value) {
     case Test::aaa:
-        return str << "aaa";
+        return stream << "aaa";
     case Test::bbb:
-        return str << "bbb";
+        return stream << "bbb";
     case Test::ccc:
-        return str << "ccc";
+        return stream << "ccc";
     }
 
-    return str << "error";
+    stream.setstate(std::ios::failbit);
 }
 
 std::istream& operator>>(std::istream& stream, Test &value)
@@ -35,6 +35,38 @@ std::istream& operator>>(std::istream& stream, Test &value)
     return stream;
 }
 
+bool to_string(const Test &value, std::string &result)
+{
+    switch (value) {
+    case Test::aaa:
+        result = "aaa";
+        return true;
+    case Test::bbb:
+        result = "bbb";
+        return true;
+    case Test::ccc:
+        result = "ccc";
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool from_string(const std::string &text, Test &value)
+{
+    if (text == "aaa") {
+        value = Test::aaa;
+    } else if (text == "bbb") {
+        value = Test::bbb;
+    } else if (text == "ccc") {
+        value = Test::ccc;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 int main()
 {
     SettingsText settings;
@@ -44,12 +76,19 @@ int main()
     settings.setValue("2", 2);
     settings.setValue("3", 3.123456789);
 
-    settings.setValue("4", Test::ccc);
+    settings.setValue("4", Test::bbb);
+    settings.setValue<Test>("5", Test::ccc, &to_string);
 
     settings.save("settings.txt");
 
     Test test;
     if (settings.getValue("4", test)) {
+        std::cout << test <<std::endl;
+    } else {
+        std::cout << "error" <<std::endl;
+    }
+
+    if (settings.getValue<Test>("5", test, &from_string)) {
         std::cout << test <<std::endl;
     } else {
         std::cout << "error" <<std::endl;
