@@ -78,6 +78,7 @@ int main()
 
     settings.setValue("4", Test::bbb);
     settings.setValue("5", Test::ccc, &to_string);
+    settings.setValue("6", Test::ccc, [](const Test &value, std::string &result){return true;});
 
     settings.save("settings.txt");
 

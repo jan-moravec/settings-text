@@ -17,11 +17,12 @@ public:
     template<typename T> bool setValue(const std::string &key, const T &value);
     bool setValue(const std::string &key, const std::string &value);
     bool setValue(const std::string &key, const char *value);
-    template<typename T> bool setValue(const std::string &key, const T &value, bool(*convert)(const T &value, std::string &result));
+    //template<typename T> bool setValue(const std::string &key, const T &value, bool(*convert)(const T &value, std::string &result));
+    template<typename T, typename F> bool setValue(const std::string &key, const T &value, F &&convert);
 
     template<typename T> bool getValue(const std::string &key, T &value);
     bool getValue(const std::string &key, std::string &value);
-    template<typename T> bool getValue(const std::string &key, T &value, bool(*convert)(const std::string &text, T &value));
+    template<typename T, typename F> bool getValue(const std::string &key, T &value, F &&convert);
 
     bool load(const std::string &file_name);
     bool save(const std::string &file_name);
@@ -61,8 +62,8 @@ bool SettingsText::setValue(const std::string &key, const char *value)
     return true;
 }
 
-template<typename T>
-bool SettingsText::setValue(const std::string &key, const T &value, bool (*convert)(const T &value, std::string &result))
+template<typename T, typename F>
+bool SettingsText::setValue(const std::string &key, const T &value, F &&convert)
 {
     std::string result;
     if (convert(value, result)) {
@@ -100,8 +101,8 @@ bool SettingsText::getValue(const std::string &key, std::string &value)
     return true;
 }
 
-template<typename T>
-bool SettingsText::getValue(const std::string &key, T &value, bool(*convert)(const std::string &text, T &value))
+template<typename T, typename F>
+bool SettingsText::getValue(const std::string &key, T &value, F &&convert)
 {
     if (settings.find(key) == settings.end()) {
         return false;
