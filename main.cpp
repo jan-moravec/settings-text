@@ -77,7 +77,7 @@ int main()
     settings.setValue("3", 3.123456789);
 
     settings.setValue("4", Test::bbb);
-    settings.setValue<Test>("5", Test::ccc, &to_string);
+    settings.setValue("5", Test::ccc, &to_string);
 
     settings.save("settings.txt");
 
@@ -88,7 +88,7 @@ int main()
         std::cout << "error" <<std::endl;
     }
 
-    if (settings.getValue<Test>("5", test, &from_string)) {
+    if (settings.getValue("5", test, &from_string)) {
         std::cout << test <<std::endl;
     } else {
         std::cout << "error" <<std::endl;
