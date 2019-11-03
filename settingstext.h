@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <set>
 #include <map>
 #include <unordered_map>
 #include <algorithm>
@@ -18,7 +19,6 @@ public:
 
     template<typename T> bool setValue(const std::string &key, const T &value);
     bool setValue(const std::string &key, const std::string &value);
-    bool setValue(const std::string &key, const char *value);
     template<typename T, typename F> bool setValue(const std::string &key, const T &value, F &&convert);
 
     template<typename T> bool getValue(const std::string &key, T &value);
@@ -29,17 +29,30 @@ public:
     std::string operator[](const std::string &key);
 
     void setDescription(const std::string &description);
+    void setCategory(const std::string &category = "");
 
     bool load(const std::string &file_name);
     bool save(const std::string &file_name);
+    void clear();
 
 private:
-    std::unordered_map<std::string, std::string> settings;
+    struct Value {
+        std::string value;
+        std::string category;
+        std::string description;
+    };
+    /// Main object containing all settings - key, values
+    std::unordered_map<std::string, Value> settings;
+    /// Current category name
+    std::string current_category;
+
+    /// Settings file description
+    std::string description;
+
+    /// Settings file properties
     const std::string delimiter = " ";
     const std::string comment = "#";
     const std::string whitespace = " \n\r\t\f\v";
-
-    std::string description;
 
     void set(std::stringstream &sstream);
     bool isComment(const std::string &line);
@@ -58,8 +71,7 @@ bool SettingsText::setValue(const std::string &key, const T &value)
     std::stringstream sstream;
     set(sstream);
     if (sstream << value) {
-        settings[key] = sstream.str();
-        return true;
+        return setValue(key, sstream.str());
     }
 
     return false;
@@ -67,13 +79,13 @@ bool SettingsText::setValue(const std::string &key, const T &value)
 
 bool SettingsText::setValue(const std::string &key, const std::string &value)
 {
-    settings[key] = value;
-    return true;
-}
+    if (settings.find(key) == settings.end()) {
+        settings[key].value = value,
+        settings[key].category = current_category;
+        return true;
+    }
 
-bool SettingsText::setValue(const std::string &key, const char *value)
-{
-    settings[key] = value;
+    settings[key].value = value;
     return true;
 }
 
@@ -82,8 +94,7 @@ bool SettingsText::setValue(const std::string &key, const T &value, F &&convert)
 {
     std::string result;
     if (convert(value, result)) {
-        settings[key] = result;
-        return true;
+        return setValue(key, result);
     }
 
     return false;
@@ -96,7 +107,7 @@ bool SettingsText::getValue(const std::string &key, T &value)
         return false;
     }
 
-    std::stringstream sstream(settings[key]);
+    std::stringstream sstream(settings[key].value);
     set(sstream);
     if (sstream >> value) {
         return true;
@@ -111,14 +122,14 @@ bool SettingsText::getValue(const std::string &key, std::string &value)
         return false;
     }
 
-    value = settings[key];
+    value = settings[key].value;
 
     return true;
 }
 
 std::string SettingsText::value(const std::string &key)
 {
-    return settings[key];
+    return settings[key].value;
 }
 
 std::string SettingsText::operator[](const std::string &key) {
@@ -132,7 +143,7 @@ bool SettingsText::getValue(const std::string &key, T &value, F &&convert)
         return false;
     }
 
-    if (convert(settings[key], value)) {
+    if (convert(settings[key].value, value)) {
         return true;
     }
 
@@ -141,7 +152,7 @@ bool SettingsText::getValue(const std::string &key, T &value, F &&convert)
 
 void SettingsText::setDescription(const std::string &descr)
 {
-    description = "# " + descr;
+    description = comment + " " + descr;
     std::size_t index = 0;
     while (true) {
         index = description.find("\n", index);
@@ -155,7 +166,12 @@ void SettingsText::setDescription(const std::string &descr)
         index += (2 + comment.size());
     }
 
-    description += "\n\n";
+    description += "\n";
+}
+
+void SettingsText::setCategory(const std::string &category)
+{
+    current_category = category;
 }
 
 bool SettingsText::load(const std::string &file_name)
@@ -165,8 +181,6 @@ bool SettingsText::load(const std::string &file_name)
     if (!file.is_open()) {
         return false;
     }
-
-    settings.clear();
 
     std::string line;
     while (std::getline(file, line)) {
@@ -185,7 +199,7 @@ bool SettingsText::load(const std::string &file_name)
         std::string key = trimRight(line.substr(0, position_delimiter));
         std::string value = trimLeft(line.substr(position_delimiter + delimiter.size()));
 
-        settings[key] = value;
+        settings[key].value = value;
     }
 
     return true;
@@ -201,12 +215,28 @@ bool SettingsText::save(const std::string &file_name)
 
     file << description;
 
-    std::map<std::string, std::string> ordered(settings.begin(), settings.end());
-    for (const auto &pair: ordered) {
-        file << pair.first << delimiter << pair.second << std::endl;
+    // Category, key
+    std::map<std::string, std::set<std::string>> ordered;
+    for (const auto &pair: settings) {
+        ordered[pair.second.category].emplace(pair.first);
+    }
+
+    for (const auto &category: ordered) {
+        file << std::endl;
+        if (category.first.size()) {
+            file << comment << comment << comment << comment << " " << category.first << std::endl;
+        }
+        for (const std::string &key: category.second) {
+            file << key << delimiter << settings[key].value << std::endl;
+        }
     }
 
     return true;
+}
+
+void SettingsText::clear()
+{
+    settings.clear();
 }
 
 void SettingsText::set(std::stringstream &sstream)

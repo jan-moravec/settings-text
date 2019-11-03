@@ -75,14 +75,20 @@ int main()
 
     settings.setValue("0", "Test 0");
     settings.setValue("1", std::string("Test 1"));
+    settings.setCategory("CATEGORY 2");
     settings.setValue("2", 2);
     settings.setValue("3", 3.123456789);
-
+    settings.setCategory("CATEGORY 1");
     settings.setValue("4", Test::bbb);
     settings.setValue("5", Test::ccc, &to_string);
+    settings.setCategory();
+    settings.setValue("6", 6);
 
-    assert(settings.save("settings.txt"));
-    assert(settings.load("settings.txt"));
+    bool result = settings.save("settings.txt");
+    assert(result);
+    settings.clear();
+    result = settings.load("settings.txt");
+    assert(result);
 
     Test test;
     if (settings.getValue("4", test)) {
