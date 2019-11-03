@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include "settingstext.h"
 
 enum class Test { aaa, bbb, ccc };
@@ -70,6 +71,7 @@ bool from_string(const std::string &text, Test &value)
 int main()
 {
     SettingsText settings;
+    settings.setDescription("Testing settings.\n\nAuthor: Jan Moravec");
 
     settings.setValue("0", "Test 0");
     settings.setValue("1", std::string("Test 1"));
@@ -78,9 +80,9 @@ int main()
 
     settings.setValue("4", Test::bbb);
     settings.setValue("5", Test::ccc, &to_string);
-    settings.setValue("6", Test::ccc, [](const Test &value, std::string &result){return true;});
 
-    settings.save("settings.txt");
+    assert(settings.save("settings.txt"));
+    assert(settings.load("settings.txt"));
 
     Test test;
     if (settings.getValue("4", test)) {
@@ -94,6 +96,8 @@ int main()
     } else {
         std::cout << "error" <<std::endl;
     }
+
+    std::cout << settings.value("0") << std::endl;
 
     std::cout << "All Ok" << std::endl;
     return 0;
