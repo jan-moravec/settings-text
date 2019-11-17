@@ -2,32 +2,89 @@
 #include <cassert>
 #include "settingstext.h"
 
-enum class Test { aaa, bbb, ccc };
+enum class TestEnum { aaa, bbb, ccc };
 
-std::ostream& operator<<(std::ostream& stream, Test value)
+void save();
+void load();
+
+std::ostream& operator<<(std::ostream& stream, TestEnum value);
+std::istream& operator>>(std::istream& stream, TestEnum &value);
+
+bool to_string(const TestEnum &value, std::string &result);
+bool from_string(const std::string &text, TestEnum &value);
+
+int main()
+{
+    save();
+    load();
+
+    std::cout << "All Ok" << std::endl;
+    return 0;
+}
+
+void save()
+{
+    std::cout << "Testing saving values." << std::endl;
+
+    SettingsText settings;
+    settings.setDescription("Testing settings.\n\nAuthor: Jan Moravec");
+
+    settings.setValue("0", "Test 0");
+    settings.setValue("1", std::string("Test 1"));
+
+    settings.setCategory("CATEGORY 2");
+    settings.setValue("2", 2);
+    settings.setValue("3", 3.123456789);
+
+    settings.setCategory("CATEGORY 1");
+    settings.setValue("4", TestEnum::bbb);
+    settings.setValue("5", TestEnum::ccc, &to_string);
+
+    settings.setCategory();
+    settings.setValue("6", 6);
+    settings.setDescription("6", "Testing value description comment.");
+
+    bool result = settings.save("settings.txt");
+    assert(result);
+}
+
+void load()
+{
+    std::cout << "Testing loading values." << std::endl;
+
+    SettingsText settings;
+    bool result = settings.load("settings.txt");
+    assert(result);
+
+    TestEnum test;
+    assert(settings.getValue("4", test) && test == TestEnum::bbb);
+    assert(settings.getValue("5", test, &from_string) && test == TestEnum::ccc);
+}
+
+std::ostream& operator<<(std::ostream& stream, TestEnum value)
 {
     switch (value) {
-    case Test::aaa:
+    case TestEnum::aaa:
         return stream << "aaa";
-    case Test::bbb:
+    case TestEnum::bbb:
         return stream << "bbb";
-    case Test::ccc:
+    case TestEnum::ccc:
         return stream << "ccc";
     }
 
     stream.setstate(std::ios::failbit);
 }
 
-std::istream& operator>>(std::istream& stream, Test &value)
+std::istream& operator>>(std::istream& stream, TestEnum &value)
 {
     std::string text;
     if (stream >> text) {
         if (text == "aaa") {
-            value = Test::aaa;
+            value = TestEnum::aaa;
         } else if (text == "bbb") {
-            value = Test::bbb;
+            value = TestEnum::bbb;
         } else if (text == "ccc") {
-            value = Test::ccc;
+            value = TestEnum::ccc;
         } else {
             stream.setstate(std::ios::failbit);
         }
@@ -36,16 +93,16 @@ std::istream& operator>>(std::istream& stream, Test &value)
     return stream;
 }
 
-bool to_string(const Test &value, std::string &result)
+bool to_string(const TestEnum &value, std::string &result)
 {
     switch (value) {
-    case Test::aaa:
+    case TestEnum::aaa:
         result = "aaa";
         return true;
-    case Test::bbb:
+    case TestEnum::bbb:
         result = "bbb";
         return true;
-    case Test::ccc:
+    case TestEnum::ccc:
         result = "ccc";
         return true;
     default:
@@ -53,58 +110,17 @@ bool to_string(const Test &value, std::string &result)
     }
 }
 
-bool from_string(const std::string &text, Test &value)
+bool from_string(const std::string &text, TestEnum &value)
 {
     if (text == "aaa") {
-        value = Test::aaa;
+        value = TestEnum::aaa;
     } else if (text == "bbb") {
-        value = Test::bbb;
+        value = TestEnum::bbb;
     } else if (text == "ccc") {
-        value = Test::ccc;
+        value = TestEnum::ccc;
     } else {
         return false;
     }
 
     return true;
-}
-
-int main()
-{
-    SettingsText settings;
-    settings.setDescription("Testing settings.\n\nAuthor: Jan Moravec");
-
-    settings.setValue("0", "Test 0");
-    settings.setValue("1", std::string("Test 1"));
-    settings.setCategory("CATEGORY 2");
-    settings.setValue("2", 2);
-    settings.setValue("3", 3.123456789);
-    settings.setCategory("CATEGORY 1");
-    settings.setValue("4", Test::bbb);
-    settings.setValue("5", Test::ccc, &to_string);
-    settings.setCategory();
-    settings.setValue("6", 6);
-
-    bool result = settings.save("settings.txt");
-    assert(result);
-    settings.clear();
-    result = settings.load("settings.txt");
-    assert(result);
-
-    Test test;
-    if (settings.getValue("4", test)) {
-        std::cout << test <<std::endl;
-    } else {
-        std::cout << "error" <<std::endl;
-    }
-
-    if (settings.getValue("5", test, &from_string)) {
-        std::cout << test <<std::endl;
-    } else {
-        std::cout << "error" <<std::endl;
-    }
-
-    std::cout << settings.value("0") << std::endl;
-
-    std::cout << "All Ok" << std::endl;
-    return 0;
 }

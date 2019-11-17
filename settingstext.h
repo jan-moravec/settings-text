@@ -1,6 +1,12 @@
 #ifndef SETTINGSTEXT_H
 #define SETTINGSTEXT_H
 
+/**
+* Class for saving and loading key-value pairs from text file.
+*
+* Author: Jan Moravec
+**/
+
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -15,24 +21,40 @@
 class SettingsText
 {
 public:
-    SettingsText();
+    SettingsText() {}
 
+    /// Set any value to key using std::stringstream conversion
     template<typename T> bool setValue(const std::string &key, const T &value);
+    /// Set std::string value to key
     bool setValue(const std::string &key, const std::string &value);
+    /// Set any value to key using conversion function with prototype bool(const T &value, std::string &result);
     template<typename T, typename F> bool setValue(const std::string &key, const T &value, F &&convert);
 
+    /// Set description comment to existing key
+    bool setDescription(const std::string &key, const std::string &description);
+
+    /// Get any value from key using std::stringstream conversion
     template<typename T> bool getValue(const std::string &key, T &value);
+    /// Get std::string value from key
     bool getValue(const std::string &key, std::string &value);
+    /// Get any value from key using conversion function with prototype bool(const std::string &text, T &value);
     template<typename T, typename F> bool getValue(const std::string &key, T &value, F &&convert);
 
+    /// Return std::string value for key
     std::string value(const std::string &key);
+    /// Return std::string value for key
     std::string operator[](const std::string &key);
 
+    /// Set file description comment
     void setDescription(const std::string &description);
+    /// Set current category
     void setCategory(const std::string &category = "");
 
+    /// Load settings from file name
     bool load(const std::string &file_name);
+    /// Save settings to file name
     bool save(const std::string &file_name);
+    /// Clear current settings
     void clear();
 
 private:
@@ -54,16 +76,13 @@ private:
     const std::string comment = "#";
     const std::string whitespace = " \n\r\t\f\v";
 
+    /// Helper functions
     void set(std::stringstream &sstream);
     bool isComment(const std::string &line);
     std::string trimLeft(const std::string& s);
     std::string trimRight(const std::string& s);
     std::string trim(const std::string& s);
 };
-
-SettingsText::SettingsText()
-{
-}
 
 template<typename T>
 bool SettingsText::setValue(const std::string &key, const T &value)
@@ -80,7 +99,7 @@ bool SettingsText::setValue(const std::string &key, const T &value)
 bool SettingsText::setValue(const std::string &key, const std::string &value)
 {
     if (settings.find(key) == settings.end()) {
-        settings[key].value = value,
+        settings[key].value = value;
         settings[key].category = current_category;
         return true;
     }
@@ -98,6 +117,16 @@ bool SettingsText::setValue(const std::string &key, const T &value, F &&convert)
     }
 
     return false;
+}
+
+bool SettingsText::setDescription(const std::string &key, const std::string &description)
+{
+    if (settings.find(key) == settings.end()) {
+        return false;
+    }
+
+    settings[key].description = description;
+    return true;
 }
 
 template<typename T>
@@ -162,7 +191,6 @@ void SettingsText::setDescription(const std::string &descr)
 
         description.replace(index, 1, "\n" + comment + " ");
 
-        /* Advance index forward so the next iteration doesn't pick it up as well. */
         index += (2 + comment.size());
     }
 
@@ -227,6 +255,9 @@ bool SettingsText::save(const std::string &file_name)
             file << comment << comment << comment << comment << " " << category.first << std::endl;
         }
         for (const std::string &key: category.second) {
+            if (settings[key].description.size()) {
+                file << comment << " " << settings[key].description << std::endl;
+            }
             file << key << delimiter << settings[key].value << std::endl;
         }
     }
@@ -237,6 +268,8 @@ bool SettingsText::save(const std::string &file_name)
 void SettingsText::clear()
 {
     settings.clear();
+    current_category.clear();
+    description.clear();
 }
 
 void SettingsText::set(std::stringstream &sstream)
